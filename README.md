@@ -11,10 +11,43 @@ Playwright e2e tests. Both suites emit JUnit XML for Trunk to ingest, and each s
 - `lib/money.ts` — `formatCurrency(cents, currency)`.
 - `lib/cart.ts` — `cartTotal(items)` reducer + `CartItem` type.
 
+## Hermetic toolchain (Node + npm via Trunk)
+
+This repo manages its own Node/npm hermetically with [Trunk](https://docs.trunk.io/cli), so you
+don't need a matching Node installed — everyone (and CI) uses the exact version pinned in
+[`.trunk/trunk.yaml`](.trunk/trunk.yaml) (Node `22.16.0`). It's wired through
+[direnv](https://direnv.net): on entering the repo, `.envrc` puts Trunk's `node`/`npm`/`npx` shims
+on your `PATH`.
+
+One-time setup:
+
+```bash
+# 1. Install the Trunk CLI
+curl https://get.trunk.io -fsSL | bash
+
+# 2. Install direnv and hook it into your shell (bash/zsh/fish):
+#    https://direnv.net/docs/hook.html
+
+# 3. From the repo root, approve the .envrc:
+direnv allow
+```
+
+After that, `node` and `npm` resolve to the Trunk-managed versions automatically (the first run
+downloads Node on demand). Verify with:
+
+```bash
+which node      # → .trunk/tools/node
+node --version  # → v22.16.0
+```
+
+> Not using direnv? You can still get the same tools on `PATH` manually: run `trunk install` once
+> (generates the shims in `.trunk/tools/`), then add `.trunk/tools` to your `PATH`. CI uses
+> `actions/setup-node` pinned to the same version.
+
 ## Running tests
 
 ```bash
-npm install
+npm install   # node/npm are Trunk-managed once direnv is set up (above)
 
 # Unit (Vitest) → writes test-results/unit-junit.xml
 npm run test:unit
@@ -57,9 +90,9 @@ collide.
 
 - `.github/workflows/unit-tests.yml` / `e2e-tests.yml` — run on push + PR, execute the suites with
   `continue-on-error: true` (so quarantine can keep CI green), then upload to Trunk via
-  `trunk-io/analytics-uploader@v1`. The upload step is guarded by
-  `if: ${{ !cancelled() && secrets.TRUNK_API_TOKEN != '' }}`, so it's green before setup and active
-  once the secrets exist.
+  `trunk-io/analytics-uploader@v1`. The upload step is guarded so it no-ops until the Trunk secrets
+  exist (the token is lifted into a job `env` var and the step's `if` checks it), so CI is green
+  before setup and active once the secrets are added.
 - `.github/workflows/generate-traffic.yml` — scheduled + manual; runs `open-prs --queue`. Gated on
   the `TRAFFIC_ENABLED` repo variable, so it's **off by default**.
 

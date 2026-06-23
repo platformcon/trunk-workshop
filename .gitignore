@@ -5,6 +5,7 @@ test-results/
 playwright-report/
 playwright/.cache/
 playground/
+.direnv/
 next-env.d.ts
 *.tsbuildinfo
 .DS_Store

@@ -25,7 +25,7 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22.16.0 # keep in sync with .trunk/trunk.yaml
           cache: npm
       - run: npm ci
       - name: Configure git identity

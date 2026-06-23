@@ -1,0 +1,17 @@
+# Trunk config for the workshop repo. We use Trunk only to manage the project's
+# toolchain hermetically (Node + npm) — not the full Code Quality linter suite —
+# so contributors don't need a matching local Node install. See https://docs.trunk.io/cli
+version: 0.1
+cli:
+  version: 1.25.0
+# Pin the Node runtime. Pinned to match the CI workflows' Node version.
+runtimes:
+  enabled:
+    - node@22.16.0
+# Expose the node runtime's binaries (node, npm, npx, corepack) as hermetic
+# shims in .trunk/tools. The repo's .envrc puts that dir on PATH via direnv, so
+# `npm`/`node` resolve to the Trunk-managed versions. The shims self-bootstrap:
+# the first invocation runs `trunk` to download the pinned Node on demand.
+tools:
+  runtimes:
+    - node
