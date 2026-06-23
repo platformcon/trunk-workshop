@@ -1,14 +1,9 @@
 # trunk-workshop
 
-A small but real demo repo for the Trunk PlatformCon "cooking show" workshop covering
+A small demo repo for the Trunk PlatformCon workshop covering
 **Merge Queue** and **Flaky Tests**. It's a Next.js + TypeScript app with Vitest unit tests and
 Playwright e2e tests. Both suites emit JUnit XML for Trunk to ingest, and each suite contains one
 **intentionally flaky** test so the Flaky Tests dashboard has something real to detect and quarantine.
-
-> **State 0.** As shipped, the app/tests/CI/automation all exist, but Trunk itself is not yet
-> configured — the merge queue isn't set up and the CI upload steps are inert until a human adds the
-> Trunk secrets. See [`SETUP.md`](./SETUP.md) for the human-only steps that take this repo to its
-> "Final state."
 
 ## App
 
