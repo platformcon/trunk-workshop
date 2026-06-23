@@ -72,14 +72,18 @@ function main(): void {
 
   for (let i = 0; i < opts.count; i++) {
     const branch = `workshop/${seed}-${i}`;
-    const title = TITLES[i % TITLES.length];
+    // Alternate the impacted target so graph mode has disjoint PRs to merge in
+    // parallel (frontend PRs vs backend PRs form two independent lanes).
+    const target = i % 2 === 0 ? "frontend" : "backend";
+    const title = `${TITLES[i % TITLES.length]} (${target})`;
 
     run("git", ["checkout", "-B", branch, "origin/main"]);
 
-    // Tiny, safe, conflict-free change: a unique note file per PR.
-    mkdirSync("playground", { recursive: true });
-    const notePath = `playground/notes-${seed}-${i}.md`;
-    writeFileSync(notePath, `# Workshop traffic\n\nGenerated PR ${i + 1} (${title}).\n`);
+    // Tiny, safe, conflict-free change scoped to one target dir, so CI can compute
+    // the PR's impacted target from its changed files.
+    mkdirSync(target, { recursive: true });
+    const notePath = `${target}/notes-${seed}-${i}.md`;
+    writeFileSync(notePath, `# ${target} change\n\nGenerated PR ${i + 1} — impacts the \`${target}\` target.\n`);
 
     run("git", ["add", notePath]);
     run("git", ["commit", "-m", title]);

@@ -84,6 +84,11 @@ earlier ones, and one ordering gotcha will bite you otherwise (see the callout).
    on the repo.
 7. For the batching segment: enable **Batching** (target size **4**, max wait **5 min** — the
    defaults).
+7a. For the **graph-mode** segment: the repo already uploads each PR's impacted targets
+   (`frontend` / `backend`) via `.github/workflows/impacted-targets.yml`, regardless of queue mode.
+   So queue ~5 PRs with the queue in **linear** mode and watch them merge one at a time, then switch
+   the queue to **graph** (parallel) mode in Trunk and re-run — PRs impacting disjoint targets merge
+   in parallel. See *Graph mode* in [README.md](README.md#graph-mode-impacted-targets).
 
 ## Flaky Tests
 

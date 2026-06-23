@@ -82,9 +82,23 @@ npm run open-prs -- --count 6
 npm run open-prs -- --count 3 --queue
 ```
 
-Each PR branches off the latest `main`, makes a tiny safe change (a unique `playground/notes-*.md`
-file), and gets a realistic conventional-commit title. Branch names are timestamped so reruns don't
-collide.
+Each PR branches off the latest `main` and makes a tiny safe change scoped to one target — a unique
+`frontend/notes-*.md` or `backend/notes-*.md` file (alternating, see *Graph mode* below) — with a
+realistic conventional-commit title. Branch names are timestamped so reruns don't collide.
+
+## Graph mode (impacted targets)
+
+The repo defines two merge-queue **targets**, [`frontend/`](frontend/) and [`backend/`](backend/).
+Each PR alternates which target it touches, and `.github/workflows/impacted-targets.yml` computes the
+impacted target from the PR's changed files and uploads it to Trunk
+(`POST /v1/setImpactedTargets`, via [`scripts/upload-impacted-targets.sh`](scripts/upload-impacted-targets.sh)).
+
+Impacted targets are uploaded on **every** PR, regardless of queue mode — the queue only *uses* them
+in graph mode. So you can:
+
+1. Queue ~5 PRs with the queue in **linear** mode → they merge one at a time.
+2. Flip the queue to **graph** mode in Trunk and re-run the same thing → PRs impacting disjoint
+   targets (`frontend` vs `backend`) merge in **parallel** lanes.
 
 ## CI workflows
 
@@ -93,6 +107,8 @@ collide.
   `trunk-io/analytics-uploader@v1`. The upload step is guarded so it no-ops until the Trunk secrets
   exist (the token is lifted into a job `env` var and the step's `if` checks it), so CI is green
   before setup and active once the secrets are added.
+- `.github/workflows/impacted-targets.yml` — runs on PR; uploads the PR's impacted targets for graph
+  mode (above). Same `TRUNK_API_TOKEN` guard, so it's inert until secrets exist.
 - `.github/workflows/generate-traffic.yml` — scheduled + manual; runs `open-prs --queue`. Gated on
   the `TRAFFIC_ENABLED` repo variable, so it's **off by default**.
 

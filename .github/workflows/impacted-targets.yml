@@ -1,0 +1,23 @@
+name: Impacted Targets
+# Upload each PR's impacted targets (frontend / backend) to the Trunk Merge Queue.
+# Runs on every PR; the queue only uses them in graph (parallel) mode, so uploading
+# unconditionally lets you demo the same PRs merging linearly, then flip graph mode on
+# and re-run to see them merge as a graph. Inert until TRUNK_API_TOKEN is set.
+on:
+  pull_request:
+jobs:
+  impacted-targets:
+    name: Impacted Targets
+    runs-on: ubuntu-latest
+    env:
+      TRUNK_API_TOKEN: ${{ secrets.TRUNK_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compute & upload impacted targets
+        if: ${{ env.TRUNK_API_TOKEN != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_SHA: ${{ github.event.pull_request.head.sha }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+        run: ./scripts/upload-impacted-targets.sh
