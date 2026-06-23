@@ -1,8 +1,53 @@
 # SETUP — taking trunk-workshop from State 0 to Final state
 
 This repo ships in **State 0**: the app, tests, CI workflows, and PR automation all exist, but Trunk
-is not yet configured. The steps below are **human-only** — they happen in the GitHub and Trunk UIs
-(and involve secrets/tokens) and cannot be done by Claude Code. Work top to bottom.
+is not yet configured. Some steps below are **human-only** — they happen in the GitHub and Trunk UIs
+(and involve secrets/tokens) and cannot be scripted.
+
+If you're **forking to run your own copy** (the common case), start with *Following along from a fork*
+just below — it orchestrates the detailed sections that follow. If you're standing up the canonical
+repo from scratch, work through *GitHub / Trunk account* onward top to bottom.
+
+## Following along from a fork (recommended path)
+
+Fork the canonical repo and configure your fork. Do these **in order** — several steps depend on
+earlier ones, and one ordering gotcha will bite you otherwise (see the callout).
+
+1. **Fork** `trunk-io/trunk-workshop` into your account, then clone it:
+   ```bash
+   gh repo fork trunk-io/trunk-workshop --clone
+   cd trunk-workshop
+   ```
+2. **Set up the toolchain + install deps.** Node/npm are managed hermetically via Trunk + direnv
+   (see [README → Hermetic toolchain](README.md#hermetic-toolchain-node--npm-via-trunk)): install the
+   Trunk CLI and direnv, run `direnv allow`, then install dependencies — `open-prs` needs `tsx`, a
+   devDependency, so a fresh clone **must** install before running it:
+   ```bash
+   npm ci
+   ```
+3. **Enable GitHub Actions on the fork** — forks ship with Actions disabled:
+   ```bash
+   gh api -X PUT repos/<you>/trunk-workshop/actions/permissions -F enabled=true -f allowed_actions=all
+   ```
+4. **Install the Trunk GitHub App** on the fork and **add the Trunk secrets** — see steps 2–4 under
+   *GitHub / Trunk account*. Without the secrets, CI runs but nothing uploads to Trunk, so the Flaky
+   Tests dashboard stays empty.
+5. **Create the queue** in Trunk (Merge Queue → add repo, target `main`).
+6. **Apply branch protection** with the helper script (resolves the `trunk-io` app id automatically):
+   ```bash
+   ./scripts/setup-merge-queue.sh        # detects the current repo; or pass <you>/trunk-workshop
+   ```
+7. **Fill the queue** with PRs — each gets a `/trunk merge` comment (queue must exist, step 5):
+   ```bash
+   npm run open-prs -- --count 10 --queue
+   ```
+8. **Turn on auto-quarantine** and confirm detection — see *Flaky Tests*. Flake classification needs
+   the same test to both pass and fail across several runs, so let traffic accumulate (step 11).
+
+> **Ordering gotcha:** once step 6 applies branch protection, direct pushes to `main` are blocked —
+> which is the point, but it also means **`gh repo sync` stops working**. From then on, pulling
+> upstream changes into your fork has to go through a PR + the queue. To reset, see
+> *Resetting a fork to a clean slate* at the bottom.
 
 ## GitHub / Trunk account
 
@@ -55,7 +100,25 @@ is not yet configured. The steps below are **human-only** — they happen in the
     there's real queue depth and flake history to cut to. Flip it back to `false` (or unset it) to
     stop the traffic.
 
+## Resetting a fork to a clean slate
+
+To start over (e.g. to re-record from scratch), the **order matters**: the rulesets block the sync
+until they're removed, so delete them first, then sync, then reconfigure.
+
+```bash
+REPO=<you>/trunk-workshop
+# 1. delete the rulesets (this is what unblocks the branch)
+for id in $(gh api repos/$REPO/rulesets --jq '.[].id'); do gh api -X DELETE "repos/$REPO/rulesets/$id"; done
+# 2. now the sync works — fast-forward main to upstream (picks up any script fixes)
+gh repo sync $REPO --source trunk-io/trunk-workshop
+# 3. (optional) close stale PRs and delete leftover branches for a truly clean slate
+gh pr list --repo $REPO --json number --jq '.[].number' | xargs -I{} gh pr close {} --repo $REPO --delete-branch
+# 4. re-run the setup from a fresh pull
+git pull && ./scripts/setup-merge-queue.sh
+```
+
 ## Re-demoing setup later
 
-Filming the live setup permanently configures this repo. For a pristine "from scratch" take again,
-fork the repo (or spin up a throwaway copy) and run the setup there.
+Filming the live setup permanently configures the repo. For a pristine "from scratch" take again,
+fork the repo (or spin up a throwaway copy) and run the setup there — or use *Resetting a fork to a
+clean slate* above.
