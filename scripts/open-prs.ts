@@ -44,7 +44,10 @@ function parseArgs(argv: string[]): Options {
 }
 
 function run(cmd: string, args: string[]): string {
-  return execFileSync(cmd, args, { encoding: "utf8" }).trim();
+  // Capture stderr instead of inheriting it, so git's chatty output (remote PR-create
+  // hints, "Switched to a new branch", fetch summaries) stays out of the script's
+  // output. It's still attached to the thrown error if a command fails.
+  return execFileSync(cmd, args, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
 }
 
 // Realistic-looking conventional-commit prefixes, cycled across PRs.
